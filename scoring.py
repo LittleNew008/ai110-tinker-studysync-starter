@@ -14,6 +14,12 @@ from scoring_helpers import apply_streak_bonus
 
 def session_rating(combined_score: int) -> str:
     """Rate a study session from its combined minutes+focus score. Correct and tested."""
+    # if not isinstance(combined_score, int) or isinstance(combined_score, bool):
+    #     raise TypeError(f"Expected int, got {type(combined_score).__name__}")
+    # if combined_score < 0:
+    #     raise ValueError(f"Expected non-negative score, got {combined_score}")
+    # if combined_score > 100:
+    #     raise ValueError(f"Expected score <= 100, got {combined_score}")
     if combined_score >= 90:
         return "Great"
     if combined_score >= 80:
@@ -53,3 +59,12 @@ def run_demo():
 
 if __name__ == "__main__":
     run_demo()
+
+    # call session_rating() with a negative score
+    print(f"Negative score: {session_rating(-10)}")
+
+    # score over 100
+    print(f"Over 100 score: {session_rating(150)}")
+
+    # a decimal score
+    print(f"Decimal score: {session_rating(85.5)}")
