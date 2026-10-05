@@ -60,11 +60,13 @@ def render_session_log_tab():
         count += 1
     st.metric("Sessions logged (broken)", count)
 
-    # TODO (Part 1): initialize st.session_state.fixed_count once, then
-    # increment it here instead of the broken counter above.
+    # session_state persists across reruns; initialize only once so reruns don't reset it.
+    if "fixed_count" not in st.session_state:
+        st.session_state.fixed_count = 0
+
     if st.button("Log a session (fixed)"):
-        pass
-    st.metric("Sessions logged (fixed)", 0)  # TODO: display st.session_state.fixed_count.
+        st.session_state.fixed_count += 1
+    st.metric("Sessions logged (fixed)", st.session_state.fixed_count)
 
     st.divider()
     st.subheader("Part 2: Session List (with validation)")
