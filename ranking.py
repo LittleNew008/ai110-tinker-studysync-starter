@@ -87,6 +87,28 @@ def format_results(ranked: list) -> None:
         print(f"{rank}. {spot['name']} -- Score: {score:.1f} -- Because: {', '.join(reasons)}")
 
 
+def closest_louder_alternative(profile: dict, spots: list, ranked: list):
+    """
+    Return the nearest spot that is louder than the profile allows and isn't
+    already in `ranked`, or None. The noise weight keeps these out of the top k,
+    so this surfaces the trade-off the ranking would otherwise hide.
+    """
+    shown = {spot["id"] for spot, _, _ in ranked}
+    louder = [
+        s for s in spots
+        if s["id"] not in shown
+        and NOISE_ORDER[s["noise_level"]] > NOISE_ORDER[profile["max_noise"]]
+    ]
+    return min(louder, key=lambda s: s["distance_miles"], default=None)
+
+
+def describe_alternative(spot: dict) -> str:
+    return (
+        f"Closest option louder than your limit: {spot['name']} -- "
+        f"{spot['distance_miles']} mi, {spot['noise_level']}, {spot['seats_available']} seats"
+    )
+
+
 def render_study_spot_tab():
     import streamlit as st
 
@@ -102,6 +124,9 @@ def render_study_spot_tab():
             ranked = rank_study_spots(profile, spots, k=3)
             for spot, score, reasons in ranked:
                 st.write(f"**{spot['name']}** -- Score: {score:.1f} -- Because: {', '.join(reasons)}")
+            alternative = closest_louder_alternative(profile, spots, ranked)
+            if alternative:
+                st.caption(describe_alternative(alternative))
         except NotImplementedError:
             st.warning("🚧 Ranking isn't implemented yet -- that's Tinker 3B's ticket.")
 
@@ -111,3 +136,6 @@ if __name__ == "__main__":
     profile = {"max_noise": "moderate", "max_distance": 1.0, "min_seats": 4}
     ranked = rank_study_spots(profile, spots, k=3)
     format_results(ranked)
+    alternative = closest_louder_alternative(profile, spots, ranked)
+    if alternative:
+        print(describe_alternative(alternative))
