@@ -36,28 +36,37 @@ def score_study_spot(profile: dict, spot: dict) -> tuple:
     score = 0.0
     reasons = []
 
-    if NOISE_ORDER[spot["noise_level"]] <= NOISE_ORDER[profile["max_noise"]]:
-        score += 2.5
+    # Each factor earns a base amount for meeting the profile plus a graded
+    # bonus for beating it, so spots that all "match" still get different scores.
+    # Maximums: noise 2.5 + distance 1.5 + seats 1.0 = 5.0.
+    spot_noise = NOISE_ORDER[spot["noise_level"]]
+    max_noise = NOISE_ORDER[profile["max_noise"]]
+    if spot_noise <= max_noise:
+        score += 2.0 + 0.5 * (spot_noise < max_noise)
         reasons.append("quiet enough")
     else:
         score -= 1.0
         reasons.append("too noisy")
 
-    if spot["distance_miles"] <= profile["max_distance"]:
-        score += 1.5
+    max_distance = profile["max_distance"]
+    if spot["distance_miles"] <= max_distance:
+        closeness = 1 - spot["distance_miles"] / max_distance if max_distance > 0 else 1
+        score += 0.75 + 0.75 * closeness
         reasons.append("close enough")
     else:
         score -= 1.0
         reasons.append("too far")
 
-    if spot["seats_available"] >= profile["min_seats"]:
-        score += 1.0
+    min_seats = max(profile["min_seats"], 1)
+    if spot["seats_available"] >= min_seats:
+        surplus = min(1.0, (spot["seats_available"] - min_seats) / min_seats)
+        score += 0.5 + 0.5 * surplus
         reasons.append("enough seats")
     else:
         score -= 1.0
         reasons.append("not enough seats")
 
-    return score, reasons
+    return round(score, 2), reasons
 
 
 def rank_study_spots(profile: dict, spots: list, k: int = 3) -> list:
@@ -65,16 +74,17 @@ def rank_study_spots(profile: dict, spots: list, k: int = 3) -> list:
     Score every study spot, then return the top k as (spot, score, reasons)
     tuples, sorted by score descending.
     """
-    # TODO: score every spot with score_study_spot(), then use
-    # sorted(..., key=..., reverse=True)[:k] to keep only the top k.
-    raise NotImplementedError
+    scored = []
+    for spot in spots:
+        score, reasons = score_study_spot(profile, spot)
+        scored.append((spot, score, reasons))
+    return sorted(scored, key=lambda item: item[1], reverse=True)[:k]
 
 
 def format_results(ranked: list) -> None:
     """Print each ranked study spot with its score and reasons, one line each."""
-    # TODO: for each (spot, score, reasons) tuple, print a readable line, e.g.:
-    # "1. Innovation Commons -- Score: 5.0 -- Because: quiet enough, close enough"
-    raise NotImplementedError
+    for rank, (spot, score, reasons) in enumerate(ranked, start=1):
+        print(f"{rank}. {spot['name']} -- Score: {score:.1f} -- Because: {', '.join(reasons)}")
 
 
 def render_study_spot_tab():
